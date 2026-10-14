@@ -12,9 +12,9 @@ import { fileURLToPath } from 'node:url'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const RAW = join(ROOT, 'data/raw')
 
-// IIT Kanpur campus: OSM way 52434888. BBox padded slightly past the wall.
-export const CAMPUS_WAY = 52434888
-export const BBOX = '26.4995,80.2180,26.5265,80.2480'
+// Delhi Technological University campus: OSM way 111212532. BBox padded slightly past the wall.
+export const CAMPUS_WAY = 111212532
+export const BBOX = '28.7420,77.1070,28.7580,77.1260'
 
 // Override to point at a private instance, or at an unreachable host to
 // exercise the degraded path.
@@ -63,6 +63,7 @@ out geom tags;`,
   nwr["indoor"]["name"];
   nwr["room"]["name"];
   node["highway"="street_lamp"];
+  node["barrier"="gate"]["name"];
 );
 out center tags;`,
 
@@ -90,7 +91,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // Every Overpass mirror now rejects requests without one, with a plain-text
 // error rather than a status code. Omitting it silently broke `npm run fetch`.
-const UA = 'iitk.nis.pet/0.1 (campus map; +https://github.com/ni5arga/iitk; hi@nis.pet)'
+const UA = 'dtumap/0.1 (DTU campus map; ODbL; OSM contributors)'
 
 /**
  * Overpass reports failures as an XML or HTML page with a 200 status, and the

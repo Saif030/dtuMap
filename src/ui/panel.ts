@@ -5,7 +5,7 @@ import type { Hit } from '../search/engine'
 
 const el = document.getElementById('panel') as HTMLElement
 
-export const REPO = 'https://github.com/ni5arga/iitk'
+export const REPO = 'https://www.openstreetmap.org'
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
@@ -162,7 +162,7 @@ export function showPerson(f: Faculty, at?: Poi) {
       ['Degree', f.qualification ? esc(f.qualification) : undefined],
     ]),
     f.research ? `<div class="p-sec">Research</div><p class="p-note">${esc(f.research)}</p>` : '',
-    `<p class="src"><a href="${esc(f.url)}" target="_blank" rel="noopener">Profile on iitk.ac.in →</a></p>`,
+    `<p class="src"><a href="${esc(f.url)}" target="_blank" rel="noopener">Profile on dtu.ac.in →</a></p>`,
   ].join('')
 
   shell(f.name, f.title || 'Faculty', body)
@@ -190,14 +190,15 @@ export function showAbout(campus: Campus) {
     map is invented — where there is no source, the feature is simply absent.</p>
 
     <div class="p-sec">Map & places</div>
-    <p class="p-note"><b>${total}</b> places, <b>${campus.meta.counts.lecture ?? 0}</b> lecture halls.
+    <p class="p-note"><b>${total}</b> places, <b>${campus.meta.counts.hostel ?? 0}</b> hostels.
     Geometry, opening hours and wheelchair tags from
-    <a href="https://www.openstreetmap.org/relation/52434888" target="_blank" rel="noopener">OpenStreetMap</a>,
-    ODbL. Walking and cycling times are computed over the OSM path network.</p>
+    <a href="https://www.openstreetmap.org/way/111212532" target="_blank" rel="noopener">OpenStreetMap</a>,
+    ODbL. Walking and cycling times are computed over the OSM path network, plus
+    admin-drawn paths.</p>
 
     ${f ? `<div class="p-sec">Faculty</div>
     <p class="p-note"><b>${f.items.length}</b> people from
-    <a href="${esc(f._source)}" target="_blank" rel="noopener">iitk.ac.in/iitk-faculty</a>,
+    <a href="${esc(f._source)}" target="_blank" rel="noopener">dtu.ac.in faculty directory</a>,
     fetched ${esc(f._fetched.slice(0, 10))} — everything that directory publishes, paged out
     from behind its Load More buttons. ${f._located ?? 0} are placed on the map from their
     listed office.
@@ -212,20 +213,18 @@ export function showAbout(campus: Campus) {
     fetched ${esc(m._fetched.slice(0, 10))}. Community-maintained, so treat it as a strong hint.</p>` : ''}
 
     <div class="p-sec">Not here yet</div>
-    <p class="p-note">Courses and timetables (Pingala is login-walled, no public API),
-    clubs (<code>students.iitk.ac.in</code> does not resolve), notices, bus timings and
+    <p class="p-note">Courses and timetables, societies, notices, bus timings and
     lost &amp; found. Each one is waiting on a real source — see
-    <a href="${REPO}/blob/main/TODO.md" target="_blank" rel="noopener">TODO.md</a>.</p>
+    TODO.md in the repo. Admins can fill map gaps directly in admin mode (✎).</p>
 
     <div class="p-sec">Contribute</div>
-    <p class="p-note">Something wrong or missing? Most of it — printers, water
+    <p class="p-note">Something wrong or missing? Most of it — canteens, water
     coolers, cycle stands, opening hours, step-free access — belongs in
-    <a href="https://www.openstreetmap.org/relation/52434888" target="_blank" rel="noopener">OpenStreetMap</a>;
-    map it once there and this picks it up on the next build. Everything else:
-    <a href="${REPO}" target="_blank" rel="noopener">github.com/ni5arga/iitk</a>.</p>
+    <a href="https://www.openstreetmap.org/#map=16/28.75/77.1165" target="_blank" rel="noopener">OpenStreetMap</a>;
+    map it once there and this picks it up on the next build. Anything else can
+    be added instantly in admin mode and syncs to the shared database.</p>
 
-    <p class="src">Built ${esc(campus.meta.built)} · ${esc(campus.meta.attribution)}
-    · <a href="${REPO}" target="_blank" rel="noopener">source</a></p>`
+    <p class="src">Built ${esc(campus.meta.built)} · ${esc(campus.meta.attribution)}</p>`
 
-  shell('iitk.nis.pet', 'About & sources', body)
+  shell('dtu map', 'About & sources', body)
 }

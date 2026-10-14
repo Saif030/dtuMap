@@ -29,7 +29,7 @@ const warn = (m) => warnings.push(m)
 export const CATEGORIES = {
   lecture:  { label: 'Lecture halls', color: '#ffb454', pin: true },
   academic: { label: 'Depts & labs',  color: '#8ab4f8', pin: true },
-  hostel:   { label: 'Halls',         color: '#c792ea', pin: true },
+  hostel:   { label: 'Hostels',       color: '#c792ea', pin: true },
   mess:     { label: 'Messes',        color: '#7ee787', pin: true },
   canteen:  { label: 'Canteens',      color: '#7ee787', pin: true },
   shop:     { label: 'Shops',         color: '#a5d6ff', pin: false },
@@ -44,6 +44,7 @@ export const CATEGORIES = {
   vending:  { label: 'Vending',       color: '#e3b341', pin: false },
   worship:  { label: 'Worship',       color: '#bc8cff', pin: false },
   transport:{ label: 'Transport',     color: '#ff9bce', pin: false },
+  gate:     { label: 'Gates',         color: '#ff9bce', pin: true },
   admin:    { label: 'Admin & help',  color: '#9ea7b3', pin: false },
   green:    { label: 'Parks',         color: '#2ea043', pin: false },
   light:    { label: 'Street lights',  color: '#ffd97a', pin: false },
@@ -53,6 +54,9 @@ function classify(t) {
   const name = t.name || ''
   const { amenity: a, shop: s, leisure: l, office: o, healthcare: h, tourism: tr, building: b } = t
   const lu = t.landuse
+
+  // Campus gates: barrier=gate with a name (e.g. "DTU Entrance").
+  if (t.barrier === 'gate' && t.name) return 'gate'
 
   // Every hall of residence is mapped as a named plot rather than a building,
   // so without this the whole hostel side of campus is invisible.
@@ -66,6 +70,8 @@ function classify(t) {
   if (/^Lecture Hall\b/i.test(name) || /Lecture Hall Complex/i.test(name) ||
       /^Tutorial Block/i.test(name) || a === 'lecture_hall') return 'lecture'
   if (a === 'theatre' || a === 'cinema' || a === 'conference_centre' || /Auditorium$/i.test(name)) return 'lecture'
+
+  if (a === 'library' && /Library/i.test(name)) return 'admin'
 
   if (/\bMess\b/i.test(name) || a === 'canteen') return 'mess'
   if (/\bCanteen\b/i.test(name)) return 'canteen'
@@ -101,6 +107,9 @@ function classify(t) {
 
   if (/^Hall\s*\d|^Hall\d/i.test(name) || tr === 'hostel' || b === 'dormitory' ||
       a === 'dormitory' || /Hostel|Bhawan/i.test(name)) return 'hostel'
+
+  // Overnight accommodation that is not a student hostel (guest house).
+  if (tr === 'hotel' || tr === 'guest_house') return 'admin'
 
   if (o === 'university' || o === 'research' || a === 'university' || a === 'research_institute' ||
       a === 'college' || a === 'school' || o === 'educational_institution' ||
@@ -354,31 +363,34 @@ async function main() {
   }
 
   /* ── live sources (data/live, written by fetch-web.mjs) ──────────────── */
-  // Faculty offices read like "Room 426, ESB-2" or "Faculty Building 210".
+  // DTU offices read like "Room 204, CSE Block" or "Electrical Dept".
   // Resolve them onto the map where the building is one we know.
   const BUILDING_ALIASES = {
-    'esb-1': 'Engineering Science Building', 'esb1': 'Engineering Science Building',
-    'esb-2': 'Engineering Science Building 2', 'esb2': 'Engineering Science Building 2',
-    'esb-3': 'Engineering Sciences Building 3', 'esb3': 'Engineering Sciences Building 3',
-    'kd': 'H.R. Kadim Diwan Building', 'kd building': 'H.R. Kadim Diwan Building',
-    'rm building': 'Rajeev Motwani Building', 'rm': 'Rajeev Motwani Building',
-    'fb': 'Faculty Building', 'faculty building': 'Faculty Building',
-    'nl': 'Northern Block Laboratories', 'wl': 'Western Lab Extension',
-    'sl': 'Southern Labs', 'core lab': 'Core Lab', 'cc': 'Computer Centre',
-    'djac': 'Diamond Jubilee Academic Complex', 'l-block': 'Block A',
+    'cse': 'Department of Computer Science', 'cs block': 'Department of Computer Science',
+    'ece': 'Department of Electronics', 'ee': 'Department of Electrical Engineering',
+    'me': 'Department of Mechanical Engineering', 'ce': 'Department of Civil Engineering',
+    'it': 'Department of Information Technology', 'se': 'Department of Software Engineering',
+    'lib': 'DTU Library', 'library': 'DTU Library',
+    'admin': 'Administrative Block', 'admin block': 'Administrative Block',
+    'sps': 'Sardar Patel Stadium', 'спор': 'DTU Sports Complex',
+    'sports': 'DTU Sports Complex', 'gym': 'DTU Gymnasium',
+    'audi': 'B R Ambedkar Auditorium',
+    'cc': 'Computer Centre', 'edusat': 'Edusat Block',
   }
   const DEPT_BUILDINGS = {
-    'computer science & engineering': 'H.R. Kadim Diwan Building',
-    'chemical engineering': 'Department of Chemical Engineering',
-    'chemistry': 'Department of Chemistry',
+    'computer science & engineering': 'Department of Computer Science',
+    'computer science': 'Department of Computer Science',
+    'information technology': 'Department of Information Technology',
+    'software engineering': 'Department of Software Engineering',
+    'electrical engineering': 'Department of Electrical Engineering',
+    'electronics & communication': 'Department of Electronics',
     'mechanical engineering': 'Department of Mechanical Engineering',
-    'economic sciences': 'Department of Economic Sciences',
-    'humanities and social sciences': 'Department of Humanities and Social Sciences',
-    'sustainable energy engineering': 'Department of Sustainable Energy Engineering',
-    'aerospace engineering': 'Aerospace Engineering Office',
-    'civil engineering': 'Civil Engineering Lab',
-    'physics': 'Northern Block Laboratories',
-    'electrical engineering': 'Western Lab Extension',
+    'civil engineering': 'Department of Civil Engineering',
+    'chemical engineering': 'Department of Chemical Engineering',
+    'physics': 'Department of Physics',
+    'mathematics': 'Department of Mathematics',
+    'humanities': 'Department of Humanities',
+    'management': 'Delhi School of Management',
   }
 
   function locateFaculty(f) {
@@ -520,7 +532,7 @@ async function main() {
   }
 
   const geo = {
-    boundary: fc([polyOf(bWay, { name: bWay.tags?.name || 'IIT Kanpur' })]),
+    boundary: fc([polyOf(bWay, { name: bWay.tags?.name || 'DTU' })]),
     green: fc(greenF),
     water: fc(waterF),
     waterway: fc(waterLineF),
@@ -662,9 +674,9 @@ async function main() {
 
   const campus = {
     meta: {
-      name: 'IIT Kanpur',
+      name: 'DTU',
       built: new Date().toISOString().slice(0, 10),
-      center: [80.2329, 26.5123],
+      center: [77.1165, 28.75],
       attribution: '© OpenStreetMap contributors (ODbL)',
       counts,
     },

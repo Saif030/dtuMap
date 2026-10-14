@@ -155,7 +155,8 @@ async function check(name, width, height, theme) {
     ok(true, 'sheet closes')
   }
 
-  ok(await page.$('#foot a') !== null, 'source link present in footer')
+  // Attribution credit must be one tap away (OSM ODbL).
+  ok(await page.$('#attrib a') !== null, 'OSM attribution link present')
 
   // Labels are the thing a broken glyph URL silently kills.
   const labels = await page.evaluate(() => {
@@ -188,11 +189,13 @@ async function check(name, width, height, theme) {
   ok(paletteOpen, 'palette opens on ⌘K')
 
   if (paletteOpen) {
-    await page.type('#palette-input', 'mess dinner', { delay: 12 })
+    // A query with a guaranteed DTU place hit (top result is a place, so
+    // Enter opens its panel — a layer hit would only toggle the layer).
+    await page.type('#palette-input', 'nescafe', { delay: 12 })
     await page.waitForFunction(() => document.querySelectorAll('#palette-results .row').length > 0,
       { timeout: 4000 }).catch(() => {})
     const rows = await page.$$eval('#palette-results .row .row-title', (r) => r.map((x) => x.textContent))
-    ok(rows.length > 0, `"mess dinner" returns results (${rows.length})`, rows[0] ?? '')
+    ok(rows.length > 0, `"nescafe" returns results (${rows.length})`, rows[0] ?? '')
 
     // Result text must stay inside the palette box.
     const spill = await page.evaluate(() => {
@@ -225,7 +228,7 @@ async function check(name, width, height, theme) {
       ok(shut, 'close button dismisses the palette')
       await page.keyboard.down('Meta'); await page.keyboard.press('KeyK'); await page.keyboard.up('Meta')
       await page.waitForFunction(() => !document.getElementById('palette').hidden, { timeout: 3000 })
-      await page.type('#palette-input', 'mess dinner', { delay: 8 })
+      await page.type('#palette-input', 'nescafe', { delay: 8 })
       await page.waitForFunction(() => document.querySelectorAll('#palette-results .row').length > 0,
         { timeout: 4000 }).catch(() => {})
     }
@@ -237,9 +240,10 @@ async function check(name, width, height, theme) {
     ).then(() => true).catch(() => false)
     ok(panelUp, 'selecting a result opens the panel')
 
-    const hasMenu = await page.evaluate(() =>
-      document.querySelectorAll('#panel .meal').length > 0)
-    ok(hasMenu, 'mess panel shows the menu')
+    // A place panel always offers routing to the spot.
+    const hasRoute = await page.evaluate(() =>
+      document.querySelectorAll('#panel [data-route]').length > 0)
+    ok(hasRoute, 'place panel offers routing')
   }
 
   if (SHOTS) {

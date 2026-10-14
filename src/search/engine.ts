@@ -306,7 +306,8 @@ export class SearchIndex {
 
   /** Suggestions for the empty state — real things that exist in this data. */
   examples(): string[] {
-    const out = ['mess dinner', 'L20', 'water', 'cycle parking', 'atm', 'printing']
+    const out = ['library', 'auditorium', 'hostel', 'canteen', 'gate', 'atm']
+    if (this.campus.mess?.items.length) out.splice(1, 0, 'mess dinner')
     if (this.campus.faculty?.items.length) out.push('cse professor')
     return out
   }

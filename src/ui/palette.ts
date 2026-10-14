@@ -202,7 +202,7 @@ function paintCursor() {
 function welcome() {
   const ex = host.index.examples()
   return `<div class="empty">
-    <b>Places, profs and mess menus</b>
+    <b>Places, hostels and canteens</b>
     ${ex.map((e) => `<code data-try="${esc(e)}">${esc(e)}</code>`).join('')}
   </div>`
 }
@@ -211,7 +211,7 @@ function empty(q: string) {
   // Be specific about the known gaps rather than shrugging.
   const missing =
     /^[a-z]{2,4}\s?\d{3}$/i.test(q) ? 'Course data is not loaded — Pingala has no public API. See TODO.md.'
-    : /\bclub\b|\bsociety\b/i.test(q) ? 'Club data is not loaded — students.iitk.ac.in does not resolve. See TODO.md.'
+    : /\bclub\b|\bsociety\b/i.test(q) ? 'Society data is not loaded — no public roster found. See TODO.md.'
     : /\bbus\b|airport|station|train/i.test(q) ? 'Bus timings are not loaded — no machine-readable source found. See TODO.md.'
     : /\blost\b|\bfound\b/i.test(q) ? 'Lost & found needs a live board, not a static file. See TODO.md.'
     : /notice|deadline|exam/i.test(q) ? 'Notices are not loaded — no public feed found. See TODO.md.'

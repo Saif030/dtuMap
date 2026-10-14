@@ -36,7 +36,13 @@ function apply() {
 
 /** Straight flip. One press, one visible change. */
 export function toggle(): Resolved {
-  choice = choice === 'dark' ? 'light' : 'dark'
+  return setTheme(choice === 'dark' ? 'light' : 'dark')
+}
+
+/** Set explicitly (admin map default). No-op when already set. */
+export function setTheme(t: Resolved): Resolved {
+  if (choice === t) return choice
+  choice = t
   try { localStorage.setItem(KEY, choice) } catch { /* nothing we can do */ }
   apply()
   return choice

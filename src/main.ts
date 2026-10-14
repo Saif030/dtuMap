@@ -7,6 +7,9 @@ import { SearchIndex, type Hit } from './search/engine'
 import { initPalette, openPalette } from './ui/palette'
 import { initPanel, showAbout, showMess, showPerson, showPoi, hidePanel } from './ui/panel'
 import { toggle as toggleTheme, onThemeChange, resolved } from './ui/theme'
+import { AdminStore } from './admin/store'
+import { initAdmin } from './admin/panel'
+import { mergeGraph } from './admin/graph'
 
 const boot = document.getElementById('boot')!
 const base = import.meta.env.BASE_URL
@@ -24,9 +27,20 @@ async function start() {
     json<Graph>('graph.json'),
   ])
 
-  const router = new Router(graphData)
-  const byId = new Map(campus.pois.map((p) => [p.id, p]))
-  const byName = new Map(campus.pois.map((p) => [p.name, p]))
+  const admin = new AdminStore()
+
+  let router = new Router(mergeGraph(graphData, admin.data.paths))
+  let byId = new Map(campus.pois.map((p) => [p.id, p]))
+  let byName = new Map(campus.pois.map((p) => [p.name, p]))
+
+  function allPois(): Poi[] {
+    return [...campus.pois, ...admin.data.places]
+  }
+
+  function rebuildLookups() {
+    byId = new Map(allPois().map((p) => [p.id, p]))
+    byName = new Map(allPois().map((p) => [p.name, p]))
+  }
 
   // OSM mess feature name -> that hall's week of menus, so clicking a mess on
   // the map answers "what's for dinner" instead of just naming the building.
@@ -43,7 +57,8 @@ async function start() {
   // and turns every marker into the same sludge brown.
   const shadeCache = new Map<string, string>()
   function catColour(cat: string): string {
-    const base = campus.categories[cat]?.color ?? '#8b949e'
+    // Admin colour customisation wins over the built-in palette.
+    const base = admin.data.config.colors?.[cat] ?? campus.categories[cat]?.color ?? '#8b949e'
     if (resolved() === 'dark') return base
     const hit = shadeCache.get(base)
     if (hit) return hit
@@ -82,10 +97,10 @@ async function start() {
     container: 'map',
     style: buildStyle(geo, campus, resolved(), base),
     center: campus.meta.center,
-    zoom: 15.1,
+    zoom: 15.4,
     minZoom: 13,
     maxZoom: 19.5,
-    maxBounds: [[80.205, 26.487], [80.262, 26.539]],
+    maxBounds: [[77.095, 28.73], [77.138, 28.768]],
     // Attribution lives in the page footer instead — same ODbL credit, one place.
     attributionControl: false,
     dragRotate: false,
@@ -114,7 +129,7 @@ async function start() {
   function poiFeatures(): GeoJSON.FeatureCollection {
     return {
       type: 'FeatureCollection',
-      features: campus.pois
+      features: allPois()
         .filter((p) => active.has(p.cat) || p.id === focusId)
         .map((p) => ({
           type: 'Feature' as const,
@@ -150,18 +165,25 @@ async function start() {
   /* ── layer chips ──────────────────────────────────────────────────────── */
 
   const rail = document.getElementById('layers')!
+  /** Build-time counts plus admin-added places, so chips stay truthful. */
+  function liveCounts(): Record<string, number> {
+    const counts: Record<string, number> = { ...campus.meta.counts }
+    for (const p of admin.data.places) counts[p.cat] = (counts[p.cat] ?? 0) + 1
+    return counts
+  }
   const cats = Object.entries(campus.categories)
-    .filter(([c]) => campus.meta.counts[c])
-    .sort((a, b) => (campus.meta.counts[b[0]] ?? 0) - (campus.meta.counts[a[0]] ?? 0))
+    .filter(([c]) => liveCounts()[c])
+    .sort((a, b) => (liveCounts()[b[0]] ?? 0) - (liveCounts()[a[0]] ?? 0))
 
   const chipBox = document.getElementById('layer-chips')!
   const layersBtn = document.getElementById('layers-btn')!
 
   function paintRail() {
+    const counts = liveCounts()
     chipBox.innerHTML = cats.map(([c, meta]) =>
       `<button class="chip" data-cat="${c}" aria-pressed="false" style="color:${catColour(c)}"
-         title="${meta.label} · ${campus.meta.counts[c]}">
-         <span class="dot"></span>${meta.label}<span class="n">${campus.meta.counts[c]}</span>
+         title="${meta.label} · ${counts[c]}">
+         <span class="dot"></span>${meta.label}<span class="n">${counts[c]}</span>
        </button>`).join('')
     paintChips()
   }
@@ -289,7 +311,7 @@ async function start() {
     navigator.geolocation?.getCurrentPosition(
       (pos) => {
         const { latitude: lat, longitude: lon } = pos.coords
-        if (lat > 26.49 && lat < 26.53 && lon > 80.21 && lon < 80.25) {
+        if (lat > 28.735 && lat < 28.765 && lon > 77.1 && lon < 77.135) {
           origin = { lat, lon, label: 'you' }
           if (target) drawRoute()
         }
@@ -302,9 +324,13 @@ async function start() {
   /* ── report a missing place ───────────────────────────────────────────── */
 
   // Half the campus is in OSM as unnamed footprints — the geometry is there,
-  // nobody has typed the name on it. Someone standing next to Hall 4 can fix
-  // that in seconds, so make the coordinates one tap away.
-  const REPO = 'https://github.com/ni5arga/iitk'
+  // nobody has typed the name on it. Right-click / long-press jumps straight
+  // to the OSM editor at that spot; in admin mode (✎) it opens the place
+  // editor instead so the fix lands in the shared database immediately.
+  /** Admin registers here to intercept map-point reports. Return true if handled. */
+  let reportHandler: ((lat: number, lon: number) => boolean) | null = null
+  ;(window as unknown as { __dtuReport?: (fn: (lat: number, lon: number) => boolean) => void })
+    .__dtuReport = (fn) => { reportHandler = fn }
   let picking = false
 
   const pickBar = document.createElement('div')
@@ -332,24 +358,13 @@ async function start() {
 
   function reportAt(lat: number, lon: number) {
     stopPicking()
-    const ll = `${lat.toFixed(7)}, ${lon.toFixed(7)}`
-    const title = `Missing place at ${lat.toFixed(5)}, ${lon.toFixed(5)}`
-    const body = [
-      `**Coordinates:** ${ll}`,
-      '',
-      '**Name:** <!-- e.g. Hall 4, Lecture Hall 9, GH1 -->',
-      '**What is it:** <!-- hostel / mess / canteen / lecture hall / water cooler / … -->',
-      '',
-      '---',
-      'Even better: add it straight to OpenStreetMap and it lands here on the next',
-      `build, plus every other map app — https://www.openstreetmap.org/edit#map=19/${lat.toFixed(5)}/${lon.toFixed(5)}`,
-      '',
-      'Please only report a spot you have actually stood at or can point to on the',
-      'satellite layer. Do not copy coordinates out of Google Maps — this dataset is',
-      'ODbL and Google-derived data cannot be redistributed or pushed upstream.',
-    ].join('\n')
+    // Admin mode handles the point itself (adds/edits a place in the DB).
+    if (reportHandler?.(lat, lon)) return
+    // Otherwise send the user to the OSM editor — one mapping there lands here
+    // on the next build, plus every other map app. Do not copy coordinates out
+    // of Google Maps: this dataset is ODbL.
     window.open(
-      `${REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`,
+      `https://www.openstreetmap.org/edit#map=19/${lat.toFixed(5)}/${lon.toFixed(5)}`,
       '_blank', 'noopener',
     )
   }
@@ -425,12 +440,12 @@ async function start() {
 
   /* ── search ───────────────────────────────────────────────────────────── */
 
-  const index = new SearchIndex(campus, {
-    onLayer: (cat) => {
+  const indexHooks = {
+    onLayer: (cat: string) => {
       active.has(cat) && active.size === 1 ? active.clear() : active.add(cat)
       refreshPois()
     },
-    onAction: (id) => {
+    onAction: (id: string) => {
       if (id === 'layers-all') { cats.forEach(([c]) => active.add(c)); refreshPois() }
       if (id === 'layers-none') { active.clear(); refreshPois() }
       if (id === 'clear-route') clearRoute()
@@ -441,7 +456,24 @@ async function start() {
           map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 17 }))
       }
     },
-  })
+  }
+
+  // The index covers base + admin places; rebuilt whenever admin data changes.
+  let searchIndex = new SearchIndex({ ...campus, pois: allPois() }, indexHooks)
+
+  /** Rebuild everything derived from admin data: lookups, router, index, layers. */
+  function refreshAll() {
+    rebuildLookups()
+    router = new Router(mergeGraph(graphData, admin.data.paths))
+    searchIndex = new SearchIndex({ ...campus, pois: allPois() }, indexHooks)
+    shadeCache.clear()
+    paintRail()
+    refreshPois()
+    if (target) drawRoute()
+  }
+
+  // Cloud/local edits arriving after load flow through the same rebuild.
+  admin.subscribe(refreshAll)
 
   function openHit(hit: Hit) {
     if (hit.run) { hit.run(); return }
@@ -472,11 +504,27 @@ async function start() {
   })
 
   initPalette({
-    index,
+    get index() { return searchIndex },
     campus,
     open: openHit,
     routeTo: (hit) => { if (hit.lat != null) routeTo(hit.lat, hit.lon!, hit.title) },
   })
+
+  /* ── admin mode ───────────────────────────────────────────────────────── */
+
+  initAdmin({
+    map,
+    campus,
+    adminPois: () => admin.data.places,
+    allPois,
+    refreshAll,
+    routeTo,
+    focusPoi,
+    catColor: (cat) => catColour(cat),
+    // Colours themselves live in admin.data.config (written by the panel);
+    // this just drops the shaded cache so they take effect immediately.
+    setCatColor: () => { shadeCache.clear() },
+  }, admin)
 
   /* ── chrome ───────────────────────────────────────────────────────────── */
 
@@ -522,7 +570,7 @@ async function start() {
   const bootTimer = setTimeout(() => {
     if (boot.classList.contains('gone')) return
     boot.className = 'err'
-    boot.textContent = 'The map did not finish loading. Check the browser console — and please open an issue at github.com/ni5arga/iitk.'
+    boot.textContent = 'The map did not finish loading. Check the browser console.'
   }, 12_000)
 
   map.on('error', (e) => {

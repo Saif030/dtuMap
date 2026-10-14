@@ -4,7 +4,7 @@ export interface Poi {
   cat: string
   lat: number
   lon: number
-  src: 'osm' | 'seed'
+  src: 'osm' | 'seed' | 'admin'
   osm?: string
   kind?: string
   unnamed?: true
@@ -106,6 +106,38 @@ export interface Graph {
 }
 
 export type Profile = 'foot' | 'bike'
+
+/* ── admin-editable overlays ────────────────────────────────────────────── */
+
+/** A hand-drawn walkable/cyclable path. Vertices in [lon, lat] order. */
+export interface AdminPath {
+  id: string
+  name: string
+  coords: [number, number][]
+  /** foot/bike allowed, unpaved shortcut styling, lit at night */
+  tags?: { foot?: boolean; bike?: boolean; unpaved?: boolean; lit?: boolean }
+  updatedAt: string
+}
+
+/** A saved named route between two points (resolved live through the router). */
+export interface AdminRoute {
+  id: string
+  name: string
+  fromLat: number
+  fromLon: number
+  fromLabel: string
+  toLat: number
+  toLon: number
+  toLabel: string
+  profile: Profile
+  updatedAt: string
+}
+
+/** Whole-map customisation: theme default + per-category colour overrides. */
+export interface MapConfig {
+  theme?: 'light' | 'dark'
+  colors?: Record<string, string>
+}
 
 export interface Route {
   coords: [number, number][]

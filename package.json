@@ -1,9 +1,9 @@
 {
-  "name": "iitk-nis-pet",
+  "name": "dtu-campus-map",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Map of IIT Kanpur with the things students actually look for, plus one fast search over all of it.",
+  "description": "Map of Delhi Technological University with fast search, routing, and admin-editable places and paths.",
   "license": "MIT",
   "scripts": {
     "fetch": "node scripts/fetch-osm.mjs",
@@ -25,9 +25,10 @@
     "wait-on": "^9.1.0"
   },
   "dependencies": {
-    "maplibre-gl": "^4.7.1"
+    "maplibre-gl": "^4.7.1",
+    "@supabase/supabase-js": "^2.45.0"
   },
-  "homepage": "https://iitk.nis.pet",
+  "homepage": "https://dtumap.example",
   "repository": {
     "type": "git",
     "url": "https://github.com/ni5arga/iitk.git"

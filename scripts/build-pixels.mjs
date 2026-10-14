@@ -10,7 +10,7 @@
 import { writeFile, mkdir, readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -22,7 +22,8 @@ await build({
   entryPoints: [join(ROOT, 'src/pixels/grid.ts')],
   bundle: true, format: 'esm', platform: 'node', outfile: GRID_TMP, logLevel: 'silent',
 })
-const G = await import(GRID_TMP + `?t=${Date.now()}`)
+// file:// URL — a bare Windows path is not importable.
+const G = await import(pathToFileURL(GRID_TMP).href + `?t=${Date.now()}`)
 
 /* ── palette shorthand ───────────────────────────────────────────────────── */
 // One character per colour so the sprites below stay readable as pictures.
@@ -178,24 +179,12 @@ if (existsSync(ART_DIR)) {
 /* ── placement ───────────────────────────────────────────────────────────── */
 // Anchored to real campus features so the art sits somewhere meaningful rather
 // than floating in a field. Offsets are in pixels from the anchor's centre.
-
-const PLACEMENTS = [
-  { art: pinkTwintails, at: 'New Lecture Hall Complex', dx: -34, dy: -30 },
-  { art: blueBob, at: 'Hall 5 Mess', dx: 26, dy: -34 },
-  { art: purpleLong, at: 'P K Kelkar Library', dx: 30, dy: 16 },
-  { art: converted['bocchi-guitar'], at: 'Pronite Ground', dx: -23, dy: -23, fallback: 'Auditorium Grounds' },
-  { art: converted['bocchi-face'], at: 'Events Ground', dx: -48, dy: -25, fallback: 'Auditorium Grounds' },
-  { art: converted['bocchi-chibi'], at: 'Open Air Theatre', dx: 22, dy: -18 },
-
-  { art: FLAGS[0], at: 'Open Air Theatre', dx: -12, dy: -26 },
-  { art: FLAGS[1], at: 'Hall 12 Mess', dx: -12, dy: -28 },
-  { art: FLAGS[2], at: 'Hall 9 Mess', dx: -12, dy: -28 },
-  { art: FLAGS[3], at: 'Hall 2 Mess', dx: -12, dy: -30 },
-  { art: FLAGS[4], at: 'Computer Centre', dx: -12, dy: -28 },
-  { art: FLAGS[5], at: 'Health Centre', dx: -12, dy: -26 },
-  { art: FLAGS[6], at: 'Hall 3 Mess', dx: -12, dy: -28 },
-  { art: FLAGS[7], at: 'Students Gymkhana', dx: -12, dy: -26, fallback: 'Main Auditorium' },
-]
+//
+// DTU: empty on purpose. The placements below were drawn for the IITK campus
+// this was forked from; stamping them onto DTU ground would put art on top of
+// unrelated buildings. Add DTU pieces here once someone draws them — the
+// machinery above is campus-independent.
+const PLACEMENTS = []
 
 const campus = JSON.parse(await readFile(join(ROOT, 'public/data/campus.json'), 'utf8'))
 const byName = new Map(campus.pois.map((p) => [p.name, p]))
@@ -230,7 +219,7 @@ const pixels = [...board].map(([k, c]) => {
 
 const payload = {
   _note: 'Seeded artwork, baked at build time. Not user data and not stored in KV.',
-  _author: 'nisarga@cse.iitk.ac.in',
+  _author: 'dtumap',
   _note2: 'Pieces carrying a `source` are converted from someone else\'s artwork by scripts/pixelify.mjs — credited to their source, not to the site author.',
   grid: { w: G.GRID_W, h: G.GRID_H, pixelMetres: G.PIXEL_M, chunk: G.CHUNK },
   placed,

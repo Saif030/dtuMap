@@ -179,6 +179,17 @@ kbd {
 }
 #theme-btn:hover { color: var(--fg); background: var(--bg-1); text-shadow: none; }
 
+#admin-btn {
+  flex: none;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  color: var(--fg-3);
+  font-size: 13px;
+  border-radius: var(--r);
+}
+#admin-btn:hover { color: var(--fg); background: var(--bg-1); }
+#admin-btn.on { color: var(--accent); background: var(--bg-1); }
+
 /* ── bottom-left: source link, then layers above it ──────────────────── */
 
 #dock {

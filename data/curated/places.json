@@ -1,6 +1,6 @@
 {
-  "_readme": "Places OpenStreetMap does not carry yet. Every row here must come from an actual survey — a coordinate someone stood at, or a feature someone saw. Nothing invented. Better still, add it to OpenStreetMap instead and it arrives here on the next `npm run fetch`, along with every other OSM consumer.",
-  "_source": "survey",
+  "_readme": "Places OpenStreetMap does not carry yet. Every row here must come from an actual survey — a coordinate someone stood at, or a feature someone saw. Nothing invented. Better still, add it to OpenStreetMap instead and it arrives here on the next `npm run fetch`, along with every other OSM consumer. Admin-mode additions can be exported to this format.",
+  "_source": "survey + OSM extract (see per-item _osm Citations)",
   "_schema": {
     "id": "unique slug, required",
     "name": "display name, required",
@@ -14,60 +14,19 @@
   },
   "items": [
     {
-      "id": "hall-13-mess",
-      "name": "Hall 13 Mess",
-      "cat": "mess",
-      "lat": 26.5109519,
-      "lon": 80.2265655,
-      "desc": "Not yet mapped in OpenStreetMap — coordinates surveyed on campus."
+      "id": "dtu-gymnasium",
+      "name": "DTU Gymnasium",
+      "cat": "sports",
+      "lat": 28.7536022,
+      "lon": 77.1151878,
+      "desc": "Indoor sports hall next to the sports complex. OSM way 350590342 carries the footprint but no category tags, so it is seeded here until mapped."
     },
     {
-      "id": "hall-13-canteen",
-      "name": "Hall 13 Canteen",
-      "cat": "canteen",
-      "lat": 26.5101082,
-      "lon": 80.2267368,
-      "desc": "Not yet mapped in OpenStreetMap — coordinates surveyed on campus."
-    },
-    {
-      "id": "technopark",
-      "name": "Technopark",
-      "cat": "academic",
-      "lat": 26.51727,
-      "lon": 80.23092,
-      "aliases": [
-        "Techno Park",
-        "Technology Park"
-      ],
-      "desc": "Not yet in OpenStreetMap — coordinates surveyed on campus."
-    },
-    {
-      "id": "c3ihub",
-      "name": "C3iHub",
-      "cat": "academic",
-      "lat": 26.517342,
-      "lon": 80.230975,
-      "level": "2",
-      "aliases": [
-        "C3i",
-        "C3I Hub",
-        "C3iHub IIT Kanpur"
-      ],
-      "desc": "Second floor of Technopark. Not yet in OpenStreetMap — coordinates surveyed on campus."
-    },
-    {
-      "id": "c3i-centre",
-      "name": "C3i Centre",
-      "cat": "academic",
-      "lat": 26.5147,
-      "lon": 80.23044,
-      "aliases": [
-        "C3I Centre",
-        "C3i Center",
-        "Cyber Security Centre"
-      ],
-      "near": "Interdisciplinary Centre for Cyber Security and Cyber Defence of Critical Infrastructures",
-      "desc": "The name everyone uses for the Interdisciplinary Centre for Cyber Security and Cyber Defence of Critical Infrastructures, in the same building. Coordinates surveyed on campus."
+      "id": "dtu-main-ground",
+      "name": "Main Sports Ground",
+      "cat": "sports",
+      "anchor": "DTU Sports Complex",
+      "desc": "Outdoor fields around the sports complex. Anchored — resolve/nudge in admin mode against satellite."
     }
   ]
 }
